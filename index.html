@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Email Threat Intelligence</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+        <div class="brand">
+            <div class="brand-icon">🛡</div>
+
+            <div>
+                <h2>ThreatLens</h2>
+                <span>Email Intelligence</span>
+            </div>
+        </div>
+
+        <nav>
+
+            <a class="nav-item active">
+                <span>◈</span>
+                Dashboard
+            </a>
+
+            <a class="nav-item">
+                <span>⌁</span>
+                Email Analysis
+            </a>
+
+            <a class="nav-item">
+                <span>◉</span>
+                Forensics
+            </a>
+
+            <a class="nav-item">
+                <span>⚙</span>
+                Settings
+            </a>
+
+        </nav>
+
+        <div class="sidebar-footer">
+
+            <div class="status-dot"></div>
+
+            <div>
+                <strong>API Online</strong>
+                <small>127.0.0.1:8000</small>
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <!-- TOP BAR -->
+        <header class="topbar">
+
+            <div>
+                <span class="eyebrow">SECURITY OPERATIONS CENTER</span>
+
+                <h1>Email Threat Intelligence</h1>
+
+                <p>
+                    Analyze email headers, authentication,
+                    URLs, IPs and forensic indicators.
+                </p>
+            </div>
+
+            <div class="top-status">
+
+                <span class="live-dot"></span>
+
+                SYSTEM ONLINE
+
+            </div>
+
+        </header>
+
+
+        <!-- UPLOAD SECTION -->
+        <section class="upload-card">
+
+            <div class="upload-content">
+
+                <div class="upload-icon">
+                    ↑
+                </div>
+
+                <div>
+
+                    <h2>Analyze an Email</h2>
+
+                    <p>
+                        Upload an <strong>.eml</strong> file for
+                        automated threat detection and forensic analysis.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="drop-zone"
+                id="dropZone"
+            >
+
+                <div class="drop-icon">
+                    ✉
+                </div>
+
+                <h3>Drop your EML file here</h3>
+
+                <p>or select a file from your computer</p>
+
+                <input
+                    type="file"
+                    id="emailFile"
+                    accept=".eml"
+                    hidden
+                >
+
+                <button
+                    class="browse-btn"
+                    onclick="document.getElementById('emailFile').click()"
+                >
+                    Choose EML File
+                </button>
+
+                <div
+                    class="selected-file"
+                    id="selectedFile"
+                ></div>
+
+            </div>
+
+
+            <button
+                class="analyze-btn"
+                onclick="analyzeEmail()"
+            >
+
+                <span>⚡</span>
+
+                Analyze Email
+
+            </button>
+
+        </section>
+
+
+        <!-- LOADING -->
+        <div
+            id="loading"
+            class="loading"
+        >
+
+            <div class="loader"></div>
+
+            <div>
+
+                <strong>Analyzing email...</strong>
+
+                <span>
+                    Running forensic inspection
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- ERROR -->
+        <div
+            id="error"
+            class="error"
+        ></div>
+
+
+        <!-- RESULTS -->
+        <section
+            id="result"
+            class="results"
+        >
+
+            <!-- THREAT HEADER -->
+            <div class="threat-banner">
+
+                <div>
+
+                    <span class="section-label">
+                        THREAT ASSESSMENT
+                    </span>
+
+                    <h2>
+                        Security Analysis Complete
+                    </h2>
+
+                    <p>
+                        Automated forensic analysis of the uploaded email.
+                    </p>
+
+                </div>
+
+                <div
+                    class="threat-badge"
+                    id="threatLevel"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <!-- SCORE CARDS -->
+            <div class="stats-grid">
+
+                <div class="stat-card">
+
+                    <span>THREAT SCORE</span>
+
+                    <strong id="threatScore">
+                        -
+                    </strong>
+
+                    <small>
+                        Risk points detected
+                    </small>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <span>SUSPICIOUS KEYWORDS</span>
+
+                    <strong id="keywordCount">
+                        -
+                    </strong>
+
+                    <small>
+                        Content indicators
+                    </small>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <span>RECEIVED HOPS</span>
+
+                    <strong id="hopCount">
+                        -
+                    </strong>
+
+                    <small>
+                        Mail server chain
+                    </small>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <span>ATTACHMENTS</span>
+
+                    <strong id="attachmentCount">
+                        -
+                    </strong>
+
+                    <small>
+                        Files detected
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <!-- EMAIL INFORMATION -->
+            <div class="panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="section-label">
+                            EMAIL METADATA
+                        </span>
+
+                        <h3>
+                            Message Information
+                        </h3>
+
+                    </div>
+
+                    <span class="panel-icon">
+                        ✉
+                    </span>
+
+                </div>
+
+
+                <div class="metadata-grid">
+
+                    <div class="metadata-item">
+
+                        <span>FROM</span>
+
+                        <strong id="sender">-</strong>
+
+                    </div>
+
+
+                    <div class="metadata-item">
+
+                        <span>TO</span>
+
+                        <strong id="receiver">-</strong>
+
+                    </div>
+
+
+                    <div class="metadata-item full">
+
+                        <span>SUBJECT</span>
+
+                        <strong id="subject">-</strong>
+
+                    </div>
+
+
+                    <div class="metadata-item">
+
+                        <span>REPLY-TO</span>
+
+                        <strong id="replyTo">-</strong>
+
+                    </div>
+
+
+                    <div class="metadata-item">
+
+                        <span>RETURN-PATH</span>
+
+                        <strong id="returnPath">-</strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- SECURITY GRID -->
+            <div class="analysis-grid">
+
+
+                <!-- AUTHENTICATION -->
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <span class="section-label">
+                                AUTHENTICATION
+                            </span>
+
+                            <h3>
+                                Email Authentication
+                            </h3>
+
+                        </div>
+
+                        <span class="panel-icon">
+                            ✓
+                        </span>
+
+                    </div>
+
+
+                    <div class="security-list">
+
+                        <div class="security-row">
+
+                            <span>SPF</span>
+
+                            <strong id="spfStatus">
+                                -
+                            </strong>
+
+                        </div>
+
+
+                        <div class="security-row">
+
+                            <span>DMARC</span>
+
+                            <strong id="dmarcStatus">
+                                -
+                            </strong>
+
+                        </div>
+
+
+                        <div class="security-row">
+
+                            <span>DKIM</span>
+
+                            <strong id="dkimStatus">
+                                -
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- HEADER ANALYSIS -->
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <span class="section-label">
+                                HEADER FORENSICS
+                            </span>
+
+                            <h3>
+                                Domain Analysis
+                            </h3>
+
+                        </div>
+
+                        <span class="panel-icon">
+                            #
+                        </span>
+
+                    </div>
+
+
+                    <div class="security-list">
+
+                        <div class="security-row">
+
+                            <span>Sender Domain</span>
+
+                            <strong id="senderDomain">
+                                -
+                            </strong>
+
+                        </div>
+
+
+                        <div class="security-row">
+
+                            <span>Reply-To Domain</span>
+
+                            <strong id="replyDomain">
+                                -
+                            </strong>
+
+                        </div>
+
+
+                        <div class="security-row">
+
+                            <span>Return-Path Domain</span>
+
+                            <strong id="returnDomain">
+                                -
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- KEYWORDS + FORENSIC SUMMARY -->
+            <div class="analysis-grid">
+
+
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <span class="section-label">
+                                CONTENT ANALYSIS
+                            </span>
+
+                            <h3>
+                                Suspicious Keywords
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="tag-container"
+                        id="keywords"
+                    ></div>
+
+                </div>
+
+
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <span class="section-label">
+                                FORENSIC SUMMARY
+                            </span>
+
+                            <h3>
+                                Detected Indicators
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+                    <ul
+                        class="forensic-list"
+                        id="summary"
+                    ></ul>
+
+                </div>
+
+            </div>
+
+
+            <!-- URL + IP -->
+            <div class="analysis-grid">
+
+
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <span class="section-label">
+                                NETWORK ANALYSIS
+                            </span>
+
+                            <h3>
+                                URLs Detected
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        id="urlAnalysis"
+                        class="network-list"
+                    >
+
+                        <span class="empty-state">
+                            No URLs analyzed
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <span class="section-label">
+                                NETWORK ANALYSIS
+                            </span>
+
+                            <h3>
+                                IP Addresses
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        id="ipAnalysis"
+                        class="network-list"
+                    >
+
+                        <span class="empty-state">
+                            No IP addresses detected
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- RECOMMENDATION -->
+            <div class="recommendation">
+
+                <div class="recommendation-icon">
+                    !
+                </div>
+
+                <div>
+
+                    <span class="section-label">
+                        SECURITY RECOMMENDATION
+                    </span>
+
+                    <p id="recommendation">
+                        -
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- FORENSIC INDICATORS -->
+            <div class="panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="section-label">
+                            FORENSIC INTELLIGENCE
+                        </span>
+
+                        <h3>
+                            Detailed Indicators
+                        </h3>
+
+                    </div>
+
+                    <span
+                        class="indicator-count"
+                        id="indicatorCount"
+                    >
+                        0
+                    </span>
+
+                </div>
+
+
+                <div
+                    id="indicators"
+                    class="indicator-list"
+                ></div>
+
+            </div>
+
+
+            <!-- ANALYZE AGAIN -->
+            <button
+                class="reset-btn"
+                onclick="resetAnalysis()"
+            >
+
+                ↻ Analyze Another Email
+
+            </button>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<script src="script.js"></script>
+
+</body>
+</html>
