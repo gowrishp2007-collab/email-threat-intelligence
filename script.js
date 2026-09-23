@@ -1,1467 +1,866 @@
-// =========================================================
-// EMAIL THREAT INTELLIGENCE - FRONTEND
-// =========================================================
-
-// Backend API
-const API_URL = "http://127.0.0.1:8000/api/analyze-eml";
+const API_URL = "https://email-threat-intelligence-api.onrender.com/api/analyze-email";
+let selectedEmailFile = null;
 
 
-// =========================================================
-// ANALYZE EMAIL
-// =========================================================
+// ============================================================
+// FILE SELECT
+// ============================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    const fileInput = document.getElementById("emailFile");
+    const dropZone = document.getElementById("dropZone");
+
+    if (fileInput) {
+        fileInput.addEventListener("change", handleFileSelect);
+    }
+
+    if (dropZone) {
+
+        dropZone.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            dropZone.classList.add("dragging");
+        });
+
+        dropZone.addEventListener("dragleave", () => {
+            dropZone.classList.remove("dragging");
+        });
+
+        dropZone.addEventListener("drop", (event) => {
+
+            event.preventDefault();
+
+            dropZone.classList.remove("dragging");
+
+            const files = event.dataTransfer.files;
+
+            if (files.length > 0) {
+                selectedEmailFile = files[0];
+                showSelectedFile(selectedEmailFile);
+            }
+        });
+    }
+
+    // Initial state
+    hideElement("loading");
+    hideElement("error");
+    hideElement("result");
+});
+
+
+// ============================================================
+// FILE SELECTION
+// ============================================================
+
+function handleFileSelect(event) {
+
+    const file = event.target.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    selectedEmailFile = file;
+
+    showSelectedFile(file);
+}
+
+
+function showSelectedFile(file) {
+
+    const selectedFile = document.getElementById("selectedFile");
+
+    if (!selectedFile) {
+        return;
+    }
+
+    selectedFile.textContent =
+        `Selected: ${file.name}`;
+
+    selectedFile.style.display = "block";
+}
+
+
+// ============================================================
+// MAIN ANALYZE FUNCTION
+// ============================================================
 
 async function analyzeEmail() {
 
-    const fileInput = document.getElementById("emailFile");
-    const loading = document.getElementById("loading");
-    const error = document.getElementById("error");
-    const result = document.getElementById("result");
+    clearError();
 
-    if (!fileInput) {
-        console.error("emailFile element not found");
+    const sender = document
+        .getElementById("textSender")
+        ?.value
+        .trim();
+
+    const receiver = document
+        .getElementById("textReceiver")
+        ?.value
+        .trim();
+
+    const subject = document
+        .getElementById("textSubject")
+        ?.value
+        .trim();
+
+    const replyTo = document
+        .getElementById("textReplyTo")
+        ?.value
+        .trim();
+
+    const returnPath = document
+        .getElementById("textReturnPath")
+        ?.value
+        .trim();
+
+    const body = document
+        .getElementById("textBody")
+        ?.value
+        .trim();
+
+
+    // ========================================================
+    // VALIDATE INPUT
+    // ========================================================
+
+    if (
+        !selectedEmailFile &&
+        !sender &&
+        !subject &&
+        !body
+    ) {
+
+        showError(
+            "Please paste an email or upload an .eml file."
+        );
+
         return;
     }
 
-    const file = fileInput.files[0];
 
-    // -------------------------------------------------------
-    // VALIDATION
-    // -------------------------------------------------------
+    showLoading();
 
-    if (!file) {
-        error.textContent = "Please select an .eml file.";
-        return;
-    }
-
-    if (!file.name.toLowerCase().endsWith(".eml")) {
-        error.textContent = "Only .eml files are supported.";
-        return;
-    }
-
-    // Clear previous error
-    error.textContent = "";
-
-    // Show loading
-    if (loading) {
-        loading.style.display = "flex";
-    }
-
-    // Hide old result
-    if (result) {
-        result.style.display = "none";
-    }
-
-    // -------------------------------------------------------
-    // FORM DATA
-    // -------------------------------------------------------
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    // -------------------------------------------------------
-    // BACKEND REQUEST
-    // -------------------------------------------------------
 
     try {
+
+        let emailData;
+
+        // ====================================================
+        // EML FILE ANALYSIS
+        // ====================================================
+
+        if (selectedEmailFile) {
+
+            const fileText =
+                await selectedEmailFile.text();
+
+            emailData =
+                parseEMLFile(fileText);
+
+        }
+
+        // ====================================================
+        // TEXT INPUT ANALYSIS
+        // ====================================================
+
+        else {
+
+            emailData = {
+
+                sender: sender || "",
+
+                receiver: receiver || "",
+
+                subject: subject || "",
+
+                body: body || "",
+
+                reply_to: replyTo || null,
+
+                return_path: returnPath || null,
+
+                received_hops: 0,
+
+                attachment_count: 0
+            };
+        }
+
+
+        // ====================================================
+        // SEND TO FASTAPI
+        // ====================================================
 
         const response = await fetch(
             API_URL,
             {
                 method: "POST",
-                body: formData
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    sender: emailData.sender,
+
+                    subject: emailData.subject,
+
+                    body: emailData.body,
+
+                    reply_to: emailData.reply_to,
+
+                    return_path: emailData.return_path
+                })
             }
         );
 
+
         if (!response.ok) {
+
+            const errorText =
+                await response.text();
+
             throw new Error(
-                "Backend returned error: " + response.status
+                `Backend error ${response.status}: ${errorText}`
             );
         }
 
-        const data = await response.json();
 
-        console.log("Backend response:", data);
+        const result =
+            await response.json();
 
-        if (data.status !== "success") {
-            throw new Error(
-                data.message || "Email analysis failed"
-            );
-        }
 
-        // Display result
-        displayResult(data);
+        // ====================================================
+        // DISPLAY EVERYTHING
+        // ====================================================
 
-    }
-
-    catch (err) {
-
-        console.error(
-            "Email analysis error:",
-            err
+        displayResults(
+            result,
+            emailData
         );
 
-        error.textContent =
-            "Failed to fetch backend: " +
-            err.message;
+
+        hideLoading();
+
+        showElement("result");
+
+
+        // Scroll automatically to result
+        document
+            .getElementById("result")
+            ?.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
     }
 
-    finally {
+    catch (error) {
 
-        if (loading) {
-            loading.style.display = "none";
-        }
+        console.error(error);
+
+        hideLoading();
+
+        showError(
+            "Unable to analyze email. Make sure FastAPI server is running at 127.0.0.1:8000."
+        );
     }
 }
 
 
-// =========================================================
-// DISPLAY RESULT
-// =========================================================
+// ============================================================
+// EML PARSER
+// ============================================================
 
-function displayResult(data) {
+function parseEMLFile(content) {
 
-    const parsed = data.parsed_email || {};
-    const analysis = data.analysis || {};
+    const separator =
+        content.includes("\r\n\r\n")
+            ? "\r\n\r\n"
+            : "\n\n";
 
-    // =======================================================
-    // BASIC EMAIL INFORMATION
-    // =======================================================
+    const parts =
+        content.split(separator);
 
-    setText(
-        "sender",
-        parsed.sender
-    );
+    const headerText =
+        parts.shift() || "";
 
-    setText(
-        "receiver",
-        parsed.receiver
-    );
-
-    setText(
-        "subject",
-        parsed.subject
-    );
-
-    setText(
-        "replyTo",
-        parsed.reply_to
-    );
-
-    setText(
-        "returnPath",
-        parsed.return_path
-    );
+    const body =
+        parts.join(separator).trim();
 
 
-    // =======================================================
-    // THREAT INFORMATION
-    // =======================================================
+    // --------------------------------------------------------
+    // Handle folded email headers
+    // --------------------------------------------------------
 
-    const threatLevel =
-        analysis.threat_level || "-";
+    const unfoldedHeaders =
+        headerText.replace(
+            /\r?\n[ \t]+/g,
+            " "
+        );
 
-    const threatScore =
-        analysis.threat_score ?? "-";
+
+    const headers = {};
+
+
+    unfoldedHeaders
+        .split(/\r?\n/)
+        .forEach(line => {
+
+            const index =
+                line.indexOf(":");
+
+            if (index === -1) {
+                return;
+            }
+
+            const key =
+                line
+                    .substring(0, index)
+                    .trim()
+                    .toLowerCase();
+
+            const value =
+                line
+                    .substring(index + 1)
+                    .trim();
+
+            headers[key] = value;
+        });
+
+
+    // --------------------------------------------------------
+    // Count Received headers
+    // --------------------------------------------------------
+
+    const receivedHops =
+        (
+            unfoldedHeaders.match(
+                /^received\s*:/gim
+            ) || []
+        ).length;
+
+
+    // --------------------------------------------------------
+    // Count attachments
+    // --------------------------------------------------------
+
+    const attachmentCount =
+        (
+            content.match(
+                /Content-Disposition:\s*attachment/gi
+            ) || []
+        ).length;
+
+
+    return {
+
+        sender:
+            headers["from"] || "",
+
+        receiver:
+            headers["to"] || "",
+
+        subject:
+            headers["subject"] || "",
+
+        reply_to:
+            headers["reply-to"] || null,
+
+        return_path:
+            headers["return-path"] || null,
+
+        body: body,
+
+        received_hops:
+            receivedHops,
+
+        attachment_count:
+            attachmentCount
+    };
+}
+
+
+// ============================================================
+// DISPLAY RESULTS
+// ============================================================
+
+function displayResults(
+    data,
+    emailData
+) {
+
+    // ========================================================
+    // THREAT
+    // ========================================================
 
     setText(
         "threatLevel",
-        threatLevel
+        data.threat_level || "-"
     );
 
     setText(
         "threatScore",
-        threatScore
+        data.threat_score ?? 0
     );
-
-    updateThreatLevel(threatLevel);
-
-
-    // =======================================================
-    // COUNTS
-    // =======================================================
 
     setText(
         "keywordCount",
-        analysis.keyword_count ?? 0
+        data.keyword_count ?? 0
+    );
+
+
+    // ========================================================
+    // EMAIL METADATA
+    // ========================================================
+
+    setText(
+        "sender",
+        data.email_information?.sender
+        || emailData.sender
+        || "-"
     );
 
     setText(
+        "receiver",
+        emailData.receiver
+        || "-"
+    );
+
+    setText(
+        "subject",
+        data.email_information?.subject
+        || emailData.subject
+        || "-"
+    );
+
+    setText(
+        "replyTo",
+        data.header_analysis?.reply_to
+        || emailData.reply_to
+        || "-"
+    );
+
+    setText(
+        "returnPath",
+        data.header_analysis?.return_path
+        || emailData.return_path
+        || "-"
+    );
+
+
+    // ========================================================
+    // STATS
+    // ========================================================
+
+    setText(
         "hopCount",
-        analysis
-            .received_header_analysis
-            ?.hop_count ?? 0
+        emailData.received_hops ?? 0
     );
 
     setText(
         "attachmentCount",
-        analysis
-            .attachment_analysis
-            ?.attachment_count ?? 0
+        emailData.attachment_count ?? 0
     );
 
 
-    // =======================================================
+    // ========================================================
     // AUTHENTICATION
-    // =======================================================
+    // ========================================================
 
-    const authentication =
-        analysis.authentication_analysis || {};
-
-    const spfStatus =
-        authentication.spf?.status || "-";
-
-    const dmarcStatus =
-        authentication.dmarc?.status || "-";
-
-    const dkimPresent =
-        Boolean(
-            authentication.dkim_signature_present
-        );
-
-
+    // SPF/DKIM/DMARC backend checks not added yet
     setText(
         "spfStatus",
-        spfStatus
+        "NOT CHECKED"
     );
 
     setText(
         "dmarcStatus",
-        dmarcStatus
+        "NOT CHECKED"
     );
 
     setText(
         "dkimStatus",
-        dkimPresent
-            ? "PRESENT"
-            : "NOT PRESENT"
+        "NOT CHECKED"
     );
 
 
-    // Authentication colors
-    updateAuthStatus(
-        "spfStatus",
-        spfStatus
-    );
+    // ========================================================
+    // HEADER FORENSICS
+    // ========================================================
 
-    updateAuthStatus(
-        "dmarcStatus",
-        dmarcStatus
-    );
-
-    updateAuthStatus(
-        "dkimStatus",
-        dkimPresent
-            ? "PRESENT"
-            : "NOT PRESENT"
-    );
-
-
-    // =======================================================
-    // HEADER / DOMAIN ANALYSIS
-    // =======================================================
-
-    const headerAnalysis =
-        analysis.header_analysis || {};
-
-    const senderDomain =
-        headerAnalysis.sender_domain || "-";
-
-    const replyDomain =
-        headerAnalysis.reply_to_domain || "-";
-
-    const returnDomain =
-        headerAnalysis.return_path_domain || "-";
-
+    const header =
+        data.header_analysis || {};
 
     setText(
         "senderDomain",
-        senderDomain
+        header.sender_domain || "-"
     );
 
     setText(
         "replyDomain",
-        replyDomain
+        header.reply_to_domain || "-"
     );
 
     setText(
         "returnDomain",
-        returnDomain
+        header.return_path_domain || "-"
     );
 
 
-    // =======================================================
-    // DOMAIN MISMATCH DETECTION
-    // =======================================================
-
-    const riskFlags =
-        Array.isArray(headerAnalysis.risk_flags)
-            ? headerAnalysis.risk_flags
-            : [];
-
-
-    const replyMismatch =
-        riskFlags.includes(
-            "reply_to_domain_mismatch"
-        );
-
-
-    const returnMismatch =
-        riskFlags.includes(
-            "return_path_domain_mismatch"
-        );
-
-
-    // Reply-To
-    createDomainStatus(
-        "replyDomain",
-        "replyDomainStatus",
-        replyMismatch,
-        replyMismatch
-            ? "⚠ MISMATCH"
-            : "✓ MATCH"
-    );
-
-
-    // Return-Path
-    createDomainStatus(
-        "returnDomain",
-        "returnDomainStatus",
-        returnMismatch,
-        returnMismatch
-            ? "⚠ MISMATCH"
-            : "✓ MATCH"
-    );
-
-
-    // Sender
-    createSenderDomainStatus(
-        "senderDomain",
-        senderDomain
-    );
-
-
-    // =======================================================
+    // ========================================================
     // SUSPICIOUS KEYWORDS
-    // =======================================================
+    // ========================================================
 
-    renderKeywords(
-        analysis.suspicious_keywords || []
-    );
+    const keywordContainer =
+        document.getElementById("keywords");
+
+    if (keywordContainer) {
+
+        keywordContainer.innerHTML = "";
+
+        const keywords =
+            data.suspicious_keywords || [];
+
+        if (keywords.length === 0) {
+
+            keywordContainer.innerHTML =
+                `<span class="empty-state">
+                    No suspicious keywords detected
+                </span>`;
+
+        } else {
+
+            keywords.forEach(keyword => {
+
+                const tag =
+                    document.createElement("span");
+
+                tag.className = "tag";
+
+                tag.textContent = keyword;
+
+                keywordContainer.appendChild(tag);
+            });
+        }
+    }
 
 
-    // =======================================================
+    // ========================================================
     // FORENSIC SUMMARY
-    // =======================================================
+    // ========================================================
 
-    renderSummary(
-        analysis.forensic_summary || []
-    );
+    const summaryContainer =
+        document.getElementById("summary");
+
+    if (summaryContainer) {
+
+        summaryContainer.innerHTML = "";
+
+        const summary =
+            data.forensic_analysis?.summary || [];
+
+        if (summary.length === 0) {
+
+            summaryContainer.innerHTML =
+                "<li>No forensic summary available.</li>";
+
+        } else {
+
+            summary.forEach(item => {
+
+                const li =
+                    document.createElement("li");
+
+                li.textContent = item;
+
+                summaryContainer.appendChild(li);
+            });
+        }
+    }
 
 
-    // =======================================================
+    // ========================================================
     // URL ANALYSIS
-    // =======================================================
+    // ========================================================
 
-    renderUrls(
-        analysis.url_analysis || []
-    );
+    const urlContainer =
+        document.getElementById("urlAnalysis");
+
+    if (urlContainer) {
+
+        urlContainer.innerHTML = "";
+
+        const urls =
+            data.url_analysis || [];
+
+        if (urls.length === 0) {
+
+            urlContainer.innerHTML =
+                `<span class="empty-state">
+                    No URLs analyzed
+                </span>`;
+
+        } else {
+
+            urls.forEach(item => {
+
+                const div =
+                    document.createElement("div");
+
+                div.className =
+                    "network-item";
+
+                div.innerHTML = `
+                    <strong>${escapeHTML(item.url)}</strong>
+                    <br>
+                    <small>
+                        Host:
+                        ${escapeHTML(item.hostname || "-")}
+                    </small>
+                    <br>
+                    <small>
+                        Risk Score:
+                        ${item.url_risk_score ?? 0}
+                    </small>
+                    <br>
+                    <small>
+                        Flags:
+                        ${escapeHTML(
+                            (item.risk_flags || []).join(", ")
+                            || "None"
+                        )}
+                    </small>
+                `;
+
+                urlContainer.appendChild(div);
+            });
+        }
+    }
 
 
-    // =======================================================
+    // ========================================================
     // IP ANALYSIS
-    // =======================================================
+    // ========================================================
 
-    renderIps(
-        analysis.ip_analysis || []
-    );
+    const ipContainer =
+        document.getElementById("ipAnalysis");
+
+    if (ipContainer) {
+
+        ipContainer.innerHTML = "";
+
+        const ips =
+            data.ip_analysis || [];
+
+        if (ips.length === 0) {
+
+            ipContainer.innerHTML =
+                `<span class="empty-state">
+                    No IP addresses detected
+                </span>`;
+
+        } else {
+
+            ips.forEach(item => {
+
+                const geo =
+                    item.geolocation || {};
+
+                const div =
+                    document.createElement("div");
+
+                div.className =
+                    "network-item";
+
+                let geoText =
+                    "Geolocation unavailable";
+
+                if (
+                    geo.geolocation_available
+                    === true
+                ) {
+
+                    geoText = `
+                        ${escapeHTML(geo.country || "-")},
+                        ${escapeHTML(geo.region || "-")},
+                        ${escapeHTML(geo.city || "-")}
+                        <br>
+                        ISP:
+                        ${escapeHTML(geo.isp || "-")}
+                    `;
+                }
+
+                div.innerHTML = `
+                    <strong>
+                        ${escapeHTML(item.ip)}
+                    </strong>
+
+                    <br>
+
+                    <small>
+                        Type:
+                        ${escapeHTML(item.ip_type || "-")}
+                    </small>
+
+                    <br>
+
+                    <small>
+                        ${geoText}
+                    </small>
+                `;
+
+                ipContainer.appendChild(div);
+            });
+        }
+    }
 
 
-    // =======================================================
+    // ========================================================
     // FORENSIC INDICATORS
-    // =======================================================
+    // ========================================================
 
-    renderIndicators(
-        analysis.forensic_indicators || [],
-        analysis.forensic_indicator_count
-    );
+    const indicatorContainer =
+        document.getElementById("indicators");
+
+    const indicatorCount =
+        document.getElementById("indicatorCount");
+
+    const indicators =
+        data.forensic_analysis?.indicators || [];
 
 
-    // =======================================================
-    // RECOMMENDATION
-    // =======================================================
+    if (indicatorCount) {
+
+        indicatorCount.textContent =
+            indicators.length;
+    }
+
+
+    if (indicatorContainer) {
+
+        indicatorContainer.innerHTML = "";
+
+        if (indicators.length === 0) {
+
+            indicatorContainer.innerHTML =
+                `<span class="empty-state">
+                    No forensic indicators detected
+                </span>`;
+
+        } else {
+
+            indicators.forEach(item => {
+
+                const div =
+                    document.createElement("div");
+
+                div.className =
+                    "indicator-item";
+
+                div.innerHTML = `
+                    <strong>
+                        ${escapeHTML(item.type || "UNKNOWN")}
+                    </strong>
+
+                    <span>
+                        ${escapeHTML(item.indicator || "-")}
+                    </span>
+
+                    <small>
+                        ${escapeHTML(item.severity || "-")}
+                    </small>
+
+                    <p>
+                        ${escapeHTML(
+                            item.description || "-"
+                        )}
+                    </p>
+                `;
+
+                indicatorContainer.appendChild(div);
+            });
+        }
+    }
+
+
+    // ========================================================
+    // SECURITY RECOMMENDATION
+    // ========================================================
+
+    let recommendation =
+        "No major suspicious indicators detected.";
+
+    if (data.threat_level === "HIGH") {
+
+        recommendation =
+            "High-risk email detected. Do not click links or provide sensitive information. Investigate the forensic indicators before trusting this email.";
+
+    } else if (
+        data.threat_level === "MEDIUM"
+    ) {
+
+        recommendation =
+            "Some suspicious indicators were detected. Verify the sender and email headers before taking action.";
+
+    }
 
     setText(
         "recommendation",
-        analysis.recommendation || "-"
-    );
-
-
-    // =======================================================
-    // SHOW RESULT
-    // =======================================================
-
-    if (resultExists()) {
-
-        document.getElementById(
-            "result"
-        ).style.display = "block";
-    }
-}
-
-
-// =========================================================
-// ELEMENT EXISTENCE
-// =========================================================
-
-function resultExists() {
-
-    return Boolean(
-        document.getElementById("result")
+        recommendation
     );
 }
 
 
-// =========================================================
-// SET TEXT HELPER
-// =========================================================
-
-function setText(
-    elementId,
-    value
-) {
-
-    const element =
-        document.getElementById(
-            elementId
-        );
-
-    if (!element) {
-        return;
-    }
-
-    element.textContent =
-        value ?? "-";
-}
-
-
-// =========================================================
-// THREAT LEVEL STYLE
-// =========================================================
-
-function updateThreatLevel(
-    level
-) {
-
-    const element =
-        document.getElementById(
-            "threatLevel"
-        );
-
-    if (!element) {
-        return;
-    }
-
-    element.classList.remove(
-        "threat-low",
-        "threat-medium",
-        "threat-high"
-    );
-
-
-    const normalized =
-        String(level || "")
-            .trim()
-            .toUpperCase();
-
-
-    if (normalized === "HIGH") {
-
-        element.classList.add(
-            "threat-high"
-        );
-
-    }
-
-    else if (normalized === "MEDIUM") {
-
-        element.classList.add(
-            "threat-medium"
-        );
-
-    }
-
-    else if (normalized === "LOW") {
-
-        element.classList.add(
-            "threat-low"
-        );
-    }
-}
-
-
-// =========================================================
-// AUTHENTICATION STATUS STYLE
-// =========================================================
-
-function updateAuthStatus(
-    elementId,
-    status
-) {
-
-    const element =
-        document.getElementById(
-            elementId
-        );
-
-    if (!element) {
-        return;
-    }
-
-
-    element.classList.remove(
-        "auth-pass",
-        "auth-fail",
-        "auth-error",
-        "auth-present"
-    );
-
-
-    const normalized =
-        String(status || "")
-            .trim()
-            .toUpperCase();
-
-
-    if (normalized === "PASS") {
-
-        element.classList.add(
-            "auth-pass"
-        );
-    }
-
-    else if (normalized === "PRESENT") {
-
-        element.classList.add(
-            "auth-present"
-        );
-    }
-
-    else if (normalized === "FAIL") {
-
-        element.classList.add(
-            "auth-fail"
-        );
-    }
-
-    else {
-
-        element.classList.add(
-            "auth-error"
-        );
-    }
-}
-
-
-// =========================================================
-// CREATE DOMAIN STATUS
-// =========================================================
-
-function createDomainStatus(
-    domainElementId,
-    statusId,
-    isMismatch,
-    text
-) {
-
-    const domainElement =
-        document.getElementById(
-            domainElementId
-        );
-
-    if (!domainElement) {
-        return;
-    }
-
-
-    let statusElement =
-        document.getElementById(
-            statusId
-        );
-
-
-    // Create only once
-    if (!statusElement) {
-
-        statusElement =
-            document.createElement(
-                "span"
-            );
-
-        statusElement.id =
-            statusId;
-
-        statusElement.className =
-            "domain-status";
-
-
-        // Put status beside domain
-        if (domainElement.parentNode) {
-
-            domainElement.parentNode.appendChild(
-                statusElement
-            );
-        }
-    }
-
-
-    statusElement.textContent =
-        text;
-
-
-    statusElement.classList.remove(
-        "domain-status-warning",
-        "domain-status-safe"
-    );
-
-
-    if (isMismatch) {
-
-        statusElement.classList.add(
-            "domain-status-warning"
-        );
-
-    }
-
-    else {
-
-        statusElement.classList.add(
-            "domain-status-safe"
-        );
-    }
-}
-
-
-// =========================================================
-// SENDER DOMAIN STATUS
-// =========================================================
-
-function createSenderDomainStatus(
-    domainElementId,
-    domain
-) {
-
-    const domainElement =
-        document.getElementById(
-            domainElementId
-        );
-
-    if (!domainElement) {
-        return;
-    }
-
-
-    let statusElement =
-        document.getElementById(
-            "senderDomainStatus"
-        );
-
-
-    if (!statusElement) {
-
-        statusElement =
-            document.createElement(
-                "span"
-            );
-
-        statusElement.id =
-            "senderDomainStatus";
-
-        statusElement.className =
-            "domain-status";
-
-
-        if (domainElement.parentNode) {
-
-            domainElement.parentNode.appendChild(
-                statusElement
-            );
-        }
-    }
-
-
-    if (
-        !domain ||
-        domain === "-"
-    ) {
-
-        statusElement.textContent =
-            "";
-
-        return;
-    }
-
-
-    statusElement.textContent =
-        "✓ SENDER";
-
-
-    statusElement.classList.remove(
-        "domain-status-warning",
-        "domain-status-safe"
-    );
-
-    statusElement.classList.add(
-        "domain-status-safe"
-    );
-}
-
-
-// =========================================================
-// SUSPICIOUS KEYWORDS
-// =========================================================
-
-function renderKeywords(
-    keywords
-) {
-
-    const container =
-        document.getElementById(
-            "keywords"
-        );
-
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML = "";
-
-
-    if (
-        !Array.isArray(keywords) ||
-        keywords.length === 0
-    ) {
-
-        container.innerHTML =
-            '<span class="empty-state">' +
-            'No suspicious keywords detected' +
-            '</span>';
-
-        return;
-    }
-
-
-    keywords.forEach(
-        keyword => {
-
-            const tag =
-                document.createElement(
-                    "span"
-                );
-
-            tag.className =
-                "keyword-tag";
-
-            tag.textContent =
-                String(keyword);
-
-            container.appendChild(
-                tag
-            );
-        }
-    );
-}
-
-
-// =========================================================
-// FORENSIC SUMMARY
-// =========================================================
-
-function renderSummary(
-    summary
-) {
-
-    const container =
-        document.getElementById(
-            "summary"
-        );
-
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML = "";
-
-
-    if (
-        !Array.isArray(summary) ||
-        summary.length === 0
-    ) {
-
-        const li =
-            document.createElement(
-                "li"
-            );
-
-        li.textContent =
-            "No major indicators detected.";
-
-        container.appendChild(
-            li
-        );
-
-        return;
-    }
-
-
-    summary.forEach(
-        item => {
-
-            const li =
-                document.createElement(
-                    "li"
-                );
-
-            li.textContent =
-                String(item);
-
-            container.appendChild(
-                li
-            );
-        }
-    );
-}
-
-
-// =========================================================
-// URL ANALYSIS
-// =========================================================
-
-function renderUrls(
-    urls
-) {
-
-    const container =
-        document.getElementById(
-            "urlAnalysis"
-        );
-
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML = "";
-
-
-    if (
-        !Array.isArray(urls) ||
-        urls.length === 0
-    ) {
-
-        container.innerHTML =
-            '<span class="empty-state">' +
-            'No URLs detected' +
-            '</span>';
-
-        return;
-    }
-
-
-    urls.forEach(
-        item => {
-
-            const row =
-                document.createElement(
-                    "div"
-                );
-
-            row.className =
-                "network-item";
-
-
-            // Left side
-            const wrapper =
-                document.createElement(
-                    "div"
-                );
-
-
-            const strong =
-                document.createElement(
-                    "strong"
-                );
-
-            strong.textContent =
-                item.url || "-";
-
-
-            const small =
-                document.createElement(
-                    "small"
-                );
-
-            small.textContent =
-                item.hostname || "";
-
-
-            wrapper.appendChild(
-                strong
-            );
-
-            wrapper.appendChild(
-                small
-            );
-
-
-            // Risk
-            const risk =
-                document.createElement(
-                    "span"
-                );
-
-
-            const riskScore =
-                Number(
-                    item.url_risk_score ?? 0
-                );
-
-
-            risk.textContent =
-                "Risk: " + riskScore;
-
-
-            if (riskScore >= 3) {
-
-                risk.classList.add(
-                    "risk-high"
-                );
-
-            }
-
-            else if (riskScore > 0) {
-
-                risk.classList.add(
-                    "risk-medium"
-                );
-
-            }
-
-            else {
-
-                risk.classList.add(
-                    "risk-low"
-                );
-            }
-
-
-            row.appendChild(
-                wrapper
-            );
-
-            row.appendChild(
-                risk
-            );
-
-
-            container.appendChild(
-                row
-            );
-        }
-    );
-}
-
-
-// =========================================================
-// IP ANALYSIS
-// =========================================================
-
-function renderIps(
-    ips
-) {
-
-    const container =
-        document.getElementById(
-            "ipAnalysis"
-        );
-
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML = "";
-
-
-    if (
-        !Array.isArray(ips) ||
-        ips.length === 0
-    ) {
-
-        container.innerHTML =
-            '<span class="empty-state">' +
-            'No IP addresses detected' +
-            '</span>';
-
-        return;
-    }
-
-
-    ips.forEach(
-        item => {
-
-            const row =
-                document.createElement(
-                    "div"
-                );
-
-            row.className =
-                "network-item";
-
-
-            const wrapper =
-                document.createElement(
-                    "div"
-                );
-
-
-            const strong =
-                document.createElement(
-                    "strong"
-                );
-
-            strong.textContent =
-                item.ip || "-";
-
-
-            const small =
-                document.createElement(
-                    "small"
-                );
-
-
-            const geo =
-                item.geolocation || {};
-
-
-            let location = "";
-
-
-            if (
-                geo.status === "success"
-            ) {
-
-                const city =
-                    geo.city || "";
-
-                const country =
-                    geo.country || "";
-
-
-                if (
-                    city &&
-                    country
-                ) {
-
-                    location =
-                        city +
-                        ", " +
-                        country;
-
-                }
-
-                else {
-
-                    location =
-                        city ||
-                        country;
-                }
-            }
-
-
-            small.textContent =
-                "Type: " +
-                (
-                    item.ip_type ||
-                    "-"
-                ) +
-                (
-                    location
-                        ? " • " + location
-                        : ""
-                );
-
-
-            wrapper.appendChild(
-                strong
-            );
-
-            wrapper.appendChild(
-                small
-            );
-
-
-            row.appendChild(
-                wrapper
-            );
-
-
-            container.appendChild(
-                row
-            );
-        }
-    );
-}
-
-
-// =========================================================
-// FORENSIC INDICATORS
-// =========================================================
-
-function renderIndicators(
-    indicators,
-    indicatorCount
-) {
-
-    const container =
-        document.getElementById(
-            "indicators"
-        );
-
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML = "";
-
-
-    const safeIndicators =
-        Array.isArray(indicators)
-            ? indicators
-            : [];
-
-
-    const count =
-        indicatorCount ??
-        safeIndicators.length;
-
-
-    setText(
-        "indicatorCount",
-        count
-    );
-
-
-    if (
-        safeIndicators.length === 0
-    ) {
-
-        container.innerHTML =
-            '<span class="empty-state">' +
-            'No forensic indicators detected' +
-            '</span>';
-
-        return;
-    }
-
-
-    safeIndicators.forEach(
-        indicator => {
-
-            const row =
-                document.createElement(
-                    "div"
-                );
-
-            row.className =
-                "indicator-item";
-
-
-            // -------------------------------------------------
-            // CONTENT
-            // -------------------------------------------------
-
-            const type =
-                document.createElement(
-                    "strong"
-                );
-
-            type.className =
-                "indicator-type";
-
-            type.textContent =
-                indicator.type || "-";
-
-
-            const value =
-                document.createElement(
-                    "span"
-                );
-
-            value.className =
-                "indicator-value";
-
-            value.textContent =
-                indicator.value || "-";
-
-
-            // -------------------------------------------------
-            // FLAGS
-            // -------------------------------------------------
-
-            const flags =
-                document.createElement(
-                    "small"
-                );
-
-            if (
-                Array.isArray(
-                    indicator.flags
-                ) &&
-                indicator.flags.length > 0
-            ) {
-
-                const flags =
-                    "indicator-flags";
-
-                flags.textContent =
-                    indicator.flags.join(
-                        ", "
-                    );
-
-            }
-
-            else {
-
-                flags.className =
-                    "indicator-flags indicator-flags-empty";
-
-                flags.textContent =
-                    "-";
-
-            }
-
-
-            // -------------------------------------------------
-            // SEVERITY
-            // -------------------------------------------------
-
-            const severity =
-                document.createElement(
-                    "b"
-                );
-
-
-            const severityValue =
-                String(
-                    indicator.severity ||
-                    "INFO"
-                ).toUpperCase();
-
-
-            severity.textContent =
-                severityValue;
-
-
-            severity.className =
-                "indicator-severity " +
-                getSeverityClass(
-                    severityValue
-                );
-
-
-            // -------------------------------------------------
-            // APPEND
-            // -------------------------------------------------
-
-            row.appendChild(
-                type
-            );
-
-            row.appendChild(
-                value
-            );
-
-            row.appendChild(
-                flags
-            );
-
-            row.appendChild(
-                severity
-            );
-
-
-            container.appendChild(
-                row
-            );
-        }
-    );
-}
-
-
-// =========================================================
-// SEVERITY CLASS
-// =========================================================
-
-function getSeverityClass(
-    severity
-) {
-
-    switch (
-        String(severity)
-            .toUpperCase()
-    ) {
-
-        case "HIGH":
-            return "severity-high";
-
-        case "MEDIUM":
-            return "severity-medium";
-
-        case "LOW":
-            return "severity-low";
-
-        default:
-            return "severity-info";
-    }
-}
-
-
-// =========================================================
-// FILE SELECT
-// =========================================================
-
-const emailFile =
-    document.getElementById(
-        "emailFile"
-    );
-
-
-if (emailFile) {
-
-    emailFile.addEventListener(
-        "change",
-        function () {
-
-            const file =
-                this.files[0];
-
-
-            const selectedFile =
-                document.getElementById(
-                    "selectedFile"
-                );
-
-
-            if (!selectedFile) {
-                return;
-            }
-
-
-            if (file) {
-
-                selectedFile.textContent =
-                    "Selected: " +
-                    file.name;
-
-            }
-
-            else {
-
-                selectedFile.textContent =
-                    "";
-            }
-        }
-    );
-}
-
-
-// =========================================================
-// RESET ANALYSIS
-// =========================================================
+// ============================================================
+// RESET
+// ============================================================
 
 function resetAnalysis() {
 
-    const fileInput =
-        document.getElementById(
-            "emailFile"
-        );
+    selectedEmailFile = null;
 
+    const fileInput =
+        document.getElementById("emailFile");
 
     if (fileInput) {
-
-        fileInput.value =
-            "";
+        fileInput.value = "";
     }
 
-
     const selectedFile =
-        document.getElementById(
-            "selectedFile"
-        );
-
+        document.getElementById("selectedFile");
 
     if (selectedFile) {
 
-        selectedFile.textContent =
-            "";
-    }
+        selectedFile.textContent = "";
 
-
-    const error =
-        document.getElementById(
-            "error"
-        );
-
-
-    if (error) {
-
-        error.textContent =
-            "";
-    }
-
-
-    const result =
-        document.getElementById(
-            "result"
-        );
-
-
-    if (result) {
-
-        result.style.display =
+        selectedFile.style.display =
             "none";
     }
 
 
-    const loading =
-        document.getElementById(
-            "loading"
-        );
+    [
+        "textSender",
+        "textReceiver",
+        "textSubject",
+        "textReplyTo",
+        "textReturnPath",
+        "textBody"
+    ].forEach(id => {
+
+        const element =
+            document.getElementById(id);
+
+        if (element) {
+            element.value = "";
+        }
+    });
 
 
-    if (loading) {
+    hideElement("result");
 
-        loading.style.display =
-            "none";
-    }
-
-
-    // Remove dynamic status elements
-    removeDynamicStatus(
-        "replyDomainStatus"
-    );
-
-    removeDynamicStatus(
-        "returnDomainStatus"
-    );
-
-    removeDynamicStatus(
-        "senderDomainStatus"
-    );
-
+    clearError();
 
     window.scrollTo({
         top: 0,
@@ -1470,64 +869,192 @@ function resetAnalysis() {
 }
 
 
-// =========================================================
-// REMOVE DYNAMIC STATUS
-// =========================================================
+// ============================================================
+// HELPERS
+// ============================================================
 
-function removeDynamicStatus(
-    id
-) {
-
-    const element =
-        document.getElementById(
-            id
-        );
-
-
-    if (element) {
-
-        element.remove();
-    }
-}
-
-
-// =========================================================
-// HTML ESCAPE
-// =========================================================
-
-function escapeHtml(
+function setText(
+    id,
     value
 ) {
 
-    const div =
-        document.createElement(
-            "div"
-        );
+    const element =
+        document.getElementById(id);
 
+    if (element) {
 
-    div.textContent =
-        value ?? "";
-
-
-    return div.innerHTML;
+        element.textContent =
+            value ?? "-";
+    }
 }
 
 
-// =========================================================
-// PAGE LOAD CHECK
-// =========================================================
+function showElement(id) {
 
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
+    const element =
+        document.getElementById(id);
 
-        console.log(
-            "Email Threat Intelligence frontend loaded."
-        );
+    if (element) {
 
-        console.log(
-            "Backend API:",
-            API_URL
-        );
+        element.style.display =
+            "block";
     }
-);
+}
+
+
+function hideElement(id) {
+
+    const element =
+        document.getElementById(id);
+
+    if (element) {
+
+        element.style.display =
+            "none";
+    }
+}
+
+
+function showLoading() {
+
+    hideElement("result");
+
+    hideElement("error");
+
+    showElement("loading");
+}
+
+
+function hideLoading() {
+
+    hideElement("loading");
+}
+
+
+function showError(message) {
+
+    const error =
+        document.getElementById("error");
+
+    if (!error) {
+        return;
+    }
+
+    error.textContent = message;
+
+    error.style.display =
+        "block";
+}
+
+
+function clearError() {
+
+    const error =
+        document.getElementById("error");
+
+    if (error) {
+
+        error.textContent = "";
+
+        error.style.display =
+            "none";
+    }
+}
+
+
+function escapeHTML(value) {
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+// ============================================================
+// SIDEBAR NAVIGATION
+// ============================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    const navItems = document.querySelectorAll(".nav-item");
+
+    navItems.forEach((item, index) => {
+
+        item.addEventListener("click", () => {
+
+            // Remove active from all
+            navItems.forEach(nav => {
+                nav.classList.remove("active");
+            });
+
+            // Add active to clicked item
+            item.classList.add("active");
+
+            // Dashboard
+            if (index === 0) {
+
+                window.scrollTo({
+                    top: 0,
+                    behavior: "smooth"
+                });
+            }
+
+            // Email Analysis
+            else if (index === 1) {
+
+                const uploadCard =
+                    document.querySelector(".upload-card");
+
+                if (uploadCard) {
+
+                    uploadCard.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start"
+                    });
+                }
+            }
+
+            // Forensics
+            else if (index === 2) {
+
+                const result =
+                    document.getElementById("result");
+
+                if (result) {
+
+                    // If analysis is not done
+                    if (
+                        result.style.display === "none" ||
+                        !result.style.display
+                    ) {
+
+                        const message =
+                            document.getElementById("error");
+
+                        if (message) {
+                            message.textContent =
+                                "Analyze an email first to view forensic results.";
+                            message.style.display = "block";
+                        }
+
+                    } else {
+
+                        result.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start"
+                        });
+                    }
+                }
+            }
+
+            // Settings
+            else if (index === 3) {
+
+                alert(
+                    "Settings panel will be available soon."
+                );
+            }
+        });
+    });
+});

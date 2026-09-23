@@ -1,297 +1,810 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Email Threat Intelligence</title>
+<title>ThreatLens - Email Threat Intelligence</title>
 
-    <link rel="stylesheet" href="style.css">
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #050b14;
+    color: #e8f0f8;
+}
+
+.app {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar {
+    width: 250px;
+    min-height: 100vh;
+    background: #07101c;
+    border-right: 1px solid #1b3045;
+    padding: 25px 18px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 100;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 55px;
+}
+
+.brand-icon {
+    width: 44px;
+    height: 44px;
+    border: 1px solid #168bc7;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    background: #091a29;
+}
+
+.brand h2 {
+    font-size: 17px;
+    color: white;
+}
+
+.brand span {
+    font-size: 11px;
+    color: #6f91aa;
+}
+
+nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-item {
+    text-decoration: none;
+    color: #8fa8bc;
+    padding: 14px 12px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 14px;
+}
+
+.nav-item:hover {
+    background: #0d2232;
+    color: #38bdf8;
+}
+
+.nav-item.active {
+    background: #0d2638;
+    color: #27b7ff;
+    border: 1px solid #174965;
+}
+
+.nav-icon {
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-footer {
+    position: absolute;
+    bottom: 25px;
+    left: 20px;
+    right: 20px;
+    border: 1px solid #1b3045;
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-dot,
+.live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #20d477;
+    box-shadow: 0 0 10px #20d477;
+}
+
+.sidebar-footer strong {
+    display: block;
+    font-size: 12px;
+}
+
+.sidebar-footer small {
+    color: #708da4;
+    font-size: 10px;
+}
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.main {
+    margin-left: 250px;
+    width: calc(100% - 250px);
+    padding: 45px;
+}
+
+.page {
+    display: none;
+}
+
+.page.active-page {
+    display: block;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 35px;
+}
+
+.eyebrow {
+    color: #22b7ff;
+    font-size: 10px;
+    letter-spacing: 2px;
+    font-weight: bold;
+}
+
+.topbar h1 {
+    margin-top: 10px;
+    font-size: 32px;
+}
+
+.topbar p {
+    margin-top: 8px;
+    color: #7694ac;
+}
+
+.top-status {
+    border: 1px solid #194b3a;
+    border-radius: 20px;
+    padding: 9px 15px;
+    color: #28d878;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.panel,
+.upload-card,
+.threat-banner,
+.stat-card {
+    background: #08131f;
+    border: 1px solid #1b3045;
+    border-radius: 14px;
+}
+
+.upload-card {
+    padding: 28px;
+}
+
+.upload-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.upload-icon {
+    width: 50px;
+    height: 50px;
+    border: 1px solid #147eaf;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #24b7ff;
+    font-size: 25px;
+}
+
+.upload-content h2 {
+    font-size: 20px;
+}
+
+.upload-content p {
+    color: #7290a8;
+    margin-top: 5px;
+    font-size: 13px;
+}
+
+.analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.panel {
+    padding: 22px;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-label {
+    color: #20b5ff;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    font-weight: bold;
+}
+
+.panel h3 {
+    margin-top: 5px;
+    font-size: 17px;
+}
+
+.panel-icon {
+    color: #28b9ff;
+    font-size: 20px;
+}
+
+.metadata-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.metadata-item {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.metadata-item.full {
+    grid-column: 1 / -1;
+}
+
+.metadata-item span {
+    font-size: 9px;
+    color: #65839a;
+    letter-spacing: 1px;
+}
+
+.metadata-item strong {
+    color: #dbe9f4;
+    font-size: 13px;
+    word-break: break-word;
+}
+
+input,
+textarea {
+    width: 100%;
+    background: #050d17;
+    border: 1px solid #20374b;
+    color: #e5edf5;
+    border-radius: 8px;
+    padding: 11px;
+    outline: none;
+    font-size: 13px;
+}
+
+input:focus,
+textarea:focus {
+    border-color: #159ddd;
+}
+
+textarea {
+    resize: vertical;
+    margin-top: 16px;
+}
+
+.drop-zone {
+    min-height: 260px;
+    border: 1px dashed #31506a;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 25px;
+    transition: 0.2s;
+}
+
+.drop-zone.dragging {
+    border-color: #23b8ff;
+    background: #091d2c;
+}
+
+.drop-icon {
+    font-size: 35px;
+    color: #20b7ff;
+    margin-bottom: 12px;
+}
+
+.drop-zone h3 {
+    margin-bottom: 7px;
+}
+
+.drop-zone p {
+    color: #708ca3;
+    font-size: 12px;
+}
+
+.browse-btn {
+    margin-top: 18px;
+    padding: 11px 18px;
+    background: #152438;
+    color: white;
+    border: 1px solid #28435b;
+    border-radius: 7px;
+    cursor: pointer;
+}
+
+.browse-btn:hover {
+    border-color: #20b7ff;
+}
+
+.selected-file {
+    margin-top: 12px;
+    color: #28d878;
+    font-size: 12px;
+}
+
+.analyze-btn {
+    width: 100%;
+    margin-top: 22px;
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    background: #2db4ed;
+    color: #03101a;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.analyze-btn:hover {
+    background: #42c2f4;
+}
+
+/* =========================================================
+   LOADING / ERROR
+========================================================= */
+
+.loading,
+.error {
+    display: none;
+    margin-top: 20px;
+    padding: 18px;
+    border-radius: 10px;
+}
+
+.loading {
+    background: #091a29;
+    border: 1px solid #1b4058;
+}
+
+.loader {
+    width: 20px;
+    height: 20px;
+    border: 3px solid #27445b;
+    border-top-color: #25b8ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-right: 12px;
+}
+
+.error {
+    background: #291116;
+    border: 1px solid #71313b;
+    color: #ff8995;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* =========================================================
+   RESULTS
+========================================================= */
+
+.results {
+    margin-top: 25px;
+}
+
+.threat-banner {
+    padding: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.threat-banner h2 {
+    margin-top: 7px;
+}
+
+.threat-banner p {
+    color: #728da3;
+    margin-top: 6px;
+    font-size: 13px;
+}
+
+.threat-badge {
+    padding: 13px 25px;
+    border-radius: 30px;
+    background: #152338;
+    border: 1px solid #28465d;
+    font-weight: bold;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.stat-card {
+    padding: 20px;
+}
+
+.stat-card span {
+    color: #66869e;
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+
+.stat-card strong {
+    display: block;
+    font-size: 28px;
+    margin: 9px 0;
+    color: #30bcff;
+}
+
+.stat-card small {
+    color: #668096;
+}
+
+.results > .panel {
+    margin-bottom: 20px;
+}
+
+.tag {
+    display: inline-block;
+    padding: 7px 11px;
+    background: #14263a;
+    border: 1px solid #24506b;
+    border-radius: 20px;
+    margin: 5px;
+    color: #43c4ff;
+    font-size: 11px;
+}
+
+.empty-state {
+    color: #637d91;
+    font-size: 13px;
+}
+
+.network-item,
+.indicator-item {
+    padding: 14px;
+    margin-bottom: 10px;
+    background: #07111d;
+    border: 1px solid #1a3044;
+    border-radius: 8px;
+}
+
+.network-item strong {
+    color: #35bdff;
+    word-break: break-all;
+}
+
+.network-item small {
+    color: #8ba2b4;
+    line-height: 1.8;
+}
+
+.indicator-item strong {
+    color: #28bcff;
+    margin-right: 10px;
+}
+
+.indicator-item span {
+    color: #d7e3ed;
+}
+
+.indicator-item small {
+    margin-left: 10px;
+    color: #ff9b9b;
+}
+
+.indicator-item p {
+    color: #7891a5;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.summary-list {
+    padding-left: 20px;
+    color: #9ab0c0;
+}
+
+.summary-list li {
+    margin: 8px 0;
+}
+
+.recommendation {
+    padding: 18px;
+    border-radius: 9px;
+    background: #0a1d2b;
+    border: 1px solid #17445e;
+    color: #9bc2d9;
+    line-height: 1.6;
+}
+
+/* =========================================================
+   SETTINGS
+========================================================= */
+
+.settings-card {
+    max-width: 700px;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 18px 0;
+    border-bottom: 1px solid #182c3e;
+}
+
+.setting-row:last-child {
+    border-bottom: none;
+}
+
+.setting-row span {
+    color: #7590a4;
+}
+
+.setting-value {
+    color: #2abaff;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media(max-width: 900px) {
+
+    .sidebar {
+        width: 210px;
+    }
+
+    .main {
+        margin-left: 210px;
+        width: calc(100% - 210px);
+        padding: 25px;
+    }
+
+    .analysis-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media(max-width: 650px) {
+
+    .sidebar {
+        position: relative;
+        width: 100%;
+        min-height: auto;
+    }
+
+    .app {
+        flex-direction: column;
+    }
+
+    .sidebar-footer {
+        position: static;
+        margin-top: 30px;
+    }
+
+    .main {
+        margin-left: 0;
+        width: 100%;
+        padding: 20px;
+    }
+
+    .topbar {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 </head>
 
 <body>
 
 <div class="app">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
+<!-- =======================================================
+     SIDEBAR
+======================================================= -->
 
-        <div class="brand">
-            <div class="brand-icon">🛡</div>
+<aside class="sidebar">
 
-            <div>
-                <h2>ThreatLens</h2>
-                <span>Email Intelligence</span>
-            </div>
+    <div class="brand">
+
+        <div class="brand-icon">
+            🛡
         </div>
 
-        <nav>
+        <div>
+            <h2>ThreatLens</h2>
+            <span>Email Intelligence</span>
+        </div>
 
-            <a class="nav-item active">
-                <span>◈</span>
-                Dashboard
-            </a>
+    </div>
 
-            <a class="nav-item">
-                <span>⌁</span>
-                Email Analysis
-            </a>
+    <nav>
 
-            <a class="nav-item">
-                <span>◉</span>
-                Forensics
-            </a>
+        <a class="nav-item active"
+           href="#dashboard"
+           onclick="showPage('dashboard', this); return false;">
 
-            <a class="nav-item">
-                <span>⚙</span>
-                Settings
-            </a>
+            <span class="nav-icon">◈</span>
+            Dashboard
 
-        </nav>
+        </a>
 
-        <div class="sidebar-footer">
+        <a class="nav-item"
+           href="#email-analysis"
+           onclick="showPage('email-analysis', this); return false;">
 
-            <div class="status-dot"></div>
+            <span class="nav-icon">⌁</span>
+            Email Analysis
 
-            <div>
-                <strong>API Online</strong>
-                <small>127.0.0.1:8000</small>
-            </div>
+        </a>
+
+        <a class="nav-item"
+           href="#forensics"
+           onclick="showPage('forensics', this); return false;">
+
+            <span class="nav-icon">◉</span>
+            Forensics
+
+        </a>
+
+        <a class="nav-item"
+           href="#settings"
+           onclick="showPage('settings', this); return false;">
+
+            <span class="nav-icon">⚙</span>
+            Settings
+
+        </a>
+
+    </nav>
+
+    <div class="sidebar-footer">
+
+        <div class="status-dot"></div>
+
+        <div>
+            <strong>API Online</strong>
+            <small>127.0.0.1:8000</small>
+        </div>
+
+    </div>
+
+</aside>
+
+
+<!-- =======================================================
+     MAIN
+======================================================= -->
+
+<main class="main">
+
+
+<!-- =======================================================
+     DASHBOARD
+======================================================= -->
+
+<section id="dashboard" class="page active-page">
+
+    <header class="topbar">
+
+        <div>
+
+            <span class="eyebrow">
+                SECURITY OPERATIONS CENTER
+            </span>
+
+            <h1>
+                Email Threat Intelligence
+            </h1>
+
+            <p>
+                Analyze email headers, authentication,
+                URLs, IPs and forensic indicators.
+            </p>
 
         </div>
 
-    </aside>
+        <div class="top-status">
+
+            <span class="live-dot"></span>
+
+            SYSTEM ONLINE
+
+        </div>
+
+    </header>
 
 
-    <!-- MAIN -->
-    <main class="main">
+    <div class="upload-card">
 
-        <!-- TOP BAR -->
-        <header class="topbar">
+        <div class="upload-content">
+
+            <div class="upload-icon">
+                ↑
+            </div>
 
             <div>
-                <span class="eyebrow">SECURITY OPERATIONS CENTER</span>
 
-                <h1>Email Threat Intelligence</h1>
+                <h2>
+                    Analyze an Email
+                </h2>
 
                 <p>
-                    Analyze email headers, authentication,
-                    URLs, IPs and forensic indicators.
+                    Paste email text or upload an
+                    <strong>.eml</strong> file for
+                    automated threat detection.
                 </p>
-            </div>
-
-            <div class="top-status">
-
-                <span class="live-dot"></span>
-
-                SYSTEM ONLINE
-
-            </div>
-
-        </header>
-
-
-        <!-- UPLOAD SECTION -->
-        <section class="upload-card">
-
-            <div class="upload-content">
-
-                <div class="upload-icon">
-                    ↑
-                </div>
-
-                <div>
-
-                    <h2>Analyze an Email</h2>
-
-                    <p>
-                        Upload an <strong>.eml</strong> file for
-                        automated threat detection and forensic analysis.
-                    </p>
-
-                </div>
-
-            </div>
-
-
-            <div
-                class="drop-zone"
-                id="dropZone"
-            >
-
-                <div class="drop-icon">
-                    ✉
-                </div>
-
-                <h3>Drop your EML file here</h3>
-
-                <p>or select a file from your computer</p>
-
-                <input
-                    type="file"
-                    id="emailFile"
-                    accept=".eml"
-                    hidden
-                >
-
-                <button
-                    class="browse-btn"
-                    onclick="document.getElementById('emailFile').click()"
-                >
-                    Choose EML File
-                </button>
-
-                <div
-                    class="selected-file"
-                    id="selectedFile"
-                ></div>
-
-            </div>
-
-
-            <button
-                class="analyze-btn"
-                onclick="analyzeEmail()"
-            >
-
-                <span>⚡</span>
-
-                Analyze Email
-
-            </button>
-
-        </section>
-
-
-        <!-- LOADING -->
-        <div
-            id="loading"
-            class="loading"
-        >
-
-            <div class="loader"></div>
-
-            <div>
-
-                <strong>Analyzing email...</strong>
-
-                <span>
-                    Running forensic inspection
-                </span>
 
             </div>
 
         </div>
 
 
-        <!-- ERROR -->
-        <div
-            id="error"
-            class="error"
-        ></div>
+        <div class="analysis-grid">
 
 
-        <!-- RESULTS -->
-        <section
-            id="result"
-            class="results"
-        >
+            <!-- TEXT INPUT -->
 
-            <!-- THREAT HEADER -->
-            <div class="threat-banner">
-
-                <div>
-
-                    <span class="section-label">
-                        THREAT ASSESSMENT
-                    </span>
-
-                    <h2>
-                        Security Analysis Complete
-                    </h2>
-
-                    <p>
-                        Automated forensic analysis of the uploaded email.
-                    </p>
-
-                </div>
-
-                <div
-                    class="threat-badge"
-                    id="threatLevel"
-                >
-                    -
-                </div>
-
-            </div>
-
-
-            <!-- SCORE CARDS -->
-            <div class="stats-grid">
-
-                <div class="stat-card">
-
-                    <span>THREAT SCORE</span>
-
-                    <strong id="threatScore">
-                        -
-                    </strong>
-
-                    <small>
-                        Risk points detected
-                    </small>
-
-                </div>
-
-
-                <div class="stat-card">
-
-                    <span>SUSPICIOUS KEYWORDS</span>
-
-                    <strong id="keywordCount">
-                        -
-                    </strong>
-
-                    <small>
-                        Content indicators
-                    </small>
-
-                </div>
-
-
-                <div class="stat-card">
-
-                    <span>RECEIVED HOPS</span>
-
-                    <strong id="hopCount">
-                        -
-                    </strong>
-
-                    <small>
-                        Mail server chain
-                    </small>
-
-                </div>
-
-
-                <div class="stat-card">
-
-                    <span>ATTACHMENTS</span>
-
-                    <strong id="attachmentCount">
-                        -
-                    </strong>
-
-                    <small>
-                        Files detected
-                    </small>
-
-                </div>
-
-            </div>
-
-
-            <!-- EMAIL INFORMATION -->
             <div class="panel">
 
                 <div class="panel-header">
@@ -299,11 +812,124 @@
                     <div>
 
                         <span class="section-label">
-                            EMAIL METADATA
+                            TEXT INPUT
                         </span>
 
                         <h3>
-                            Message Information
+                            Paste Email
+                        </h3>
+
+                    </div>
+
+                    <span class="panel-icon">
+                        ✎
+                    </span>
+
+                </div>
+
+
+                <div class="metadata-grid">
+
+                    <div class="metadata-item">
+
+                        <span>
+                            FROM
+                        </span>
+
+                        <input
+                            id="textSender"
+                            type="email"
+                            placeholder="sender@example.com"
+                        >
+
+                    </div>
+
+
+                    <div class="metadata-item">
+
+                        <span>
+                            TO
+                        </span>
+
+                        <input
+                            id="textReceiver"
+                            type="email"
+                            placeholder="receiver@example.com"
+                        >
+
+                    </div>
+
+
+                    <div class="metadata-item full">
+
+                        <span>
+                            SUBJECT
+                        </span>
+
+                        <input
+                            id="textSubject"
+                            type="text"
+                            placeholder="Email subject"
+                        >
+
+                    </div>
+
+
+                    <div class="metadata-item">
+
+                        <span>
+                            REPLY-TO
+                        </span>
+
+                        <input
+                            id="textReplyTo"
+                            type="email"
+                            placeholder="Optional"
+                        >
+
+                    </div>
+
+
+                    <div class="metadata-item">
+
+                        <span>
+                            RETURN-PATH
+                        </span>
+
+                        <input
+                            id="textReturnPath"
+                            type="email"
+                            placeholder="Optional"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <textarea
+                    id="textBody"
+                    rows="9"
+                    placeholder="Paste the email body here..."
+                ></textarea>
+
+            </div>
+
+
+            <!-- FILE INPUT -->
+
+            <div class="panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <span class="section-label">
+                            FILE INPUT
+                        </span>
+
+                        <h3>
+                            Upload EML File
                         </h3>
 
                     </div>
@@ -315,392 +941,2032 @@
                 </div>
 
 
-                <div class="metadata-grid">
+                <div
+                    class="drop-zone"
+                    id="dropZone"
+                >
 
-                    <div class="metadata-item">
-
-                        <span>FROM</span>
-
-                        <strong id="sender">-</strong>
-
+                    <div class="drop-icon">
+                        ✉
                     </div>
 
+                    <h3>
+                        Drop your EML file here
+                    </h3>
+
+                    <p>
+                        or select a file from your computer
+                    </p>
+
+
+                    <input
+                        type="file"
+                        id="emailFile"
+                        accept=".eml,message/rfc822"
+                        hidden
+                    >
+
+
+                    <button
+                        class="browse-btn"
+                        type="button"
+                        onclick="document.getElementById('emailFile').click()"
+                    >
+                        Choose EML File
+                    </button>
 
-                    <div class="metadata-item">
-
-                        <span>TO</span>
-
-                        <strong id="receiver">-</strong>
-
-                    </div>
-
-
-                    <div class="metadata-item full">
-
-                        <span>SUBJECT</span>
-
-                        <strong id="subject">-</strong>
-
-                    </div>
-
-
-                    <div class="metadata-item">
-
-                        <span>REPLY-TO</span>
-
-                        <strong id="replyTo">-</strong>
-
-                    </div>
-
-
-                    <div class="metadata-item">
-
-                        <span>RETURN-PATH</span>
-
-                        <strong id="returnPath">-</strong>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- SECURITY GRID -->
-            <div class="analysis-grid">
-
-
-                <!-- AUTHENTICATION -->
-                <div class="panel">
-
-                    <div class="panel-header">
-
-                        <div>
-
-                            <span class="section-label">
-                                AUTHENTICATION
-                            </span>
-
-                            <h3>
-                                Email Authentication
-                            </h3>
-
-                        </div>
-
-                        <span class="panel-icon">
-                            ✓
-                        </span>
-
-                    </div>
-
-
-                    <div class="security-list">
-
-                        <div class="security-row">
-
-                            <span>SPF</span>
-
-                            <strong id="spfStatus">
-                                -
-                            </strong>
-
-                        </div>
-
-
-                        <div class="security-row">
-
-                            <span>DMARC</span>
-
-                            <strong id="dmarcStatus">
-                                -
-                            </strong>
-
-                        </div>
-
-
-                        <div class="security-row">
-
-                            <span>DKIM</span>
-
-                            <strong id="dkimStatus">
-                                -
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- HEADER ANALYSIS -->
-                <div class="panel">
-
-                    <div class="panel-header">
-
-                        <div>
-
-                            <span class="section-label">
-                                HEADER FORENSICS
-                            </span>
-
-                            <h3>
-                                Domain Analysis
-                            </h3>
-
-                        </div>
-
-                        <span class="panel-icon">
-                            #
-                        </span>
-
-                    </div>
-
-
-                    <div class="security-list">
-
-                        <div class="security-row">
-
-                            <span>Sender Domain</span>
-
-                            <strong id="senderDomain">
-                                -
-                            </strong>
-
-                        </div>
-
-
-                        <div class="security-row">
-
-                            <span>Reply-To Domain</span>
-
-                            <strong id="replyDomain">
-                                -
-                            </strong>
-
-                        </div>
-
-
-                        <div class="security-row">
-
-                            <span>Return-Path Domain</span>
-
-                            <strong id="returnDomain">
-                                -
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- KEYWORDS + FORENSIC SUMMARY -->
-            <div class="analysis-grid">
-
-
-                <div class="panel">
-
-                    <div class="panel-header">
-
-                        <div>
-
-                            <span class="section-label">
-                                CONTENT ANALYSIS
-                            </span>
-
-                            <h3>
-                                Suspicious Keywords
-                            </h3>
-
-                        </div>
-
-                    </div>
 
                     <div
-                        class="tag-container"
-                        id="keywords"
+                        class="selected-file"
+                        id="selectedFile"
                     ></div>
 
                 </div>
 
+            </div>
 
-                <div class="panel">
+        </div>
 
-                    <div class="panel-header">
 
-                        <div>
+        <button
+            class="analyze-btn"
+            onclick="analyzeEmail()"
+        >
 
-                            <span class="section-label">
-                                FORENSIC SUMMARY
-                            </span>
+            ⚡ Analyze Email
 
-                            <h3>
-                                Detected Indicators
-                            </h3>
+        </button>
 
-                        </div>
+    </div>
 
-                    </div>
 
-                    <ul
-                        class="forensic-list"
-                        id="summary"
-                    ></ul>
+    <div
+        id="loading"
+        class="loading"
+    >
 
-                </div>
+        <span class="loader"></span>
+
+        <strong>
+            Analyzing email...
+        </strong>
+
+        <span>
+            Running forensic inspection
+        </span>
+
+    </div>
+
+
+    <div
+        id="error"
+        class="error"
+    ></div>
+
+
+</section>
+
+
+<!-- =======================================================
+     EMAIL ANALYSIS PAGE
+======================================================= -->
+
+<section
+    id="email-analysis"
+    class="page"
+>
+
+    <header class="topbar">
+
+        <div>
+
+            <span class="eyebrow">
+                EMAIL ANALYSIS
+            </span>
+
+            <h1>
+                Email Analysis
+            </h1>
+
+            <p>
+                Submit an email for complete security analysis.
+            </p>
+
+        </div>
+
+    </header>
+
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <span class="section-label">
+                    ANALYSIS ENGINE
+                </span>
+
+                <h3>
+                    Threat Detection Pipeline
+                </h3>
+
+            </div>
+
+            <span class="panel-icon">
+                ⚡
+            </span>
+
+        </div>
+
+
+        <div class="recommendation">
+
+            Email analysis checks:
+
+            <br><br>
+
+            ✓ Suspicious keywords<br>
+            ✓ Sender information<br>
+            ✓ Email headers<br>
+            ✓ URLs<br>
+            ✓ IP addresses<br>
+            ✓ IP geolocation<br>
+            ✓ Forensic indicators<br>
+            ✓ Threat score<br>
+            ✓ LOW / MEDIUM / HIGH classification
+
+        </div>
+
+        <button
+            class="analyze-btn"
+            style="margin-top:20px"
+            onclick="showPage('dashboard', document.querySelector('.nav-item'))"
+        >
+            Go to Email Upload
+        </button>
+
+    </div>
+
+</section>
+
+
+<!-- =======================================================
+     FORENSICS PAGE
+======================================================= -->
+
+<section
+    id="forensics"
+    class="page"
+>
+
+    <header class="topbar">
+
+        <div>
+
+            <span class="eyebrow">
+                DIGITAL FORENSICS
+            </span>
+
+            <h1>
+                Forensic Analysis
+            </h1>
+
+            <p>
+                Detailed indicators collected from the analyzed email.
+            </p>
+
+        </div>
+
+    </header>
+
+
+    <!-- THREAT -->
+
+    <div class="threat-banner">
+
+        <div>
+
+            <span class="section-label">
+                THREAT ASSESSMENT
+            </span>
+
+            <h2>
+                Security Analysis Complete
+            </h2>
+
+            <p>
+                Automated forensic analysis of the email.
+            </p>
+
+        </div>
+
+        <div
+            class="threat-badge"
+            id="threatLevel"
+        >
+            -
+        </div>
+
+    </div>
+
+
+    <!-- STATS -->
+
+    <div class="stats-grid">
+
+        <div class="stat-card">
+
+            <span>
+                THREAT SCORE
+            </span>
+
+            <strong id="threatScore">
+                -
+            </strong>
+
+            <small>
+                Risk points detected
+            </small>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <span>
+                SUSPICIOUS KEYWORDS
+            </span>
+
+            <strong id="keywordCount">
+                -
+            </strong>
+
+            <small>
+                Content indicators
+            </small>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <span>
+                RECEIVED HOPS
+            </span>
+
+            <strong id="hopCount">
+                -
+            </strong>
+
+            <small>
+                Mail server chain
+            </small>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <span>
+                ATTACHMENTS
+            </span>
+
+            <strong id="attachmentCount">
+                -
+            </strong>
+
+            <small>
+                Files detected
+            </small>
+
+        </div>
+
+    </div>
+
+
+    <!-- EMAIL METADATA -->
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <span class="section-label">
+                    EMAIL METADATA
+                </span>
+
+                <h3>
+                    Message Information
+                </h3>
+
+            </div>
+
+            <span class="panel-icon">
+                ✉
+            </span>
+
+        </div>
+
+
+        <div class="metadata-grid">
+
+            <div class="metadata-item">
+
+                <span>FROM</span>
+
+                <strong id="sender">-</strong>
 
             </div>
 
 
-            <!-- URL + IP -->
-            <div class="analysis-grid">
+            <div class="metadata-item">
 
+                <span>TO</span>
 
-                <div class="panel">
-
-                    <div class="panel-header">
-
-                        <div>
-
-                            <span class="section-label">
-                                NETWORK ANALYSIS
-                            </span>
-
-                            <h3>
-                                URLs Detected
-                            </h3>
-
-                        </div>
-
-                    </div>
-
-                    <div
-                        id="urlAnalysis"
-                        class="network-list"
-                    >
-
-                        <span class="empty-state">
-                            No URLs analyzed
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="panel">
-
-                    <div class="panel-header">
-
-                        <div>
-
-                            <span class="section-label">
-                                NETWORK ANALYSIS
-                            </span>
-
-                            <h3>
-                                IP Addresses
-                            </h3>
-
-                        </div>
-
-                    </div>
-
-                    <div
-                        id="ipAnalysis"
-                        class="network-list"
-                    >
-
-                        <span class="empty-state">
-                            No IP addresses detected
-                        </span>
-
-                    </div>
-
-                </div>
+                <strong id="receiver">-</strong>
 
             </div>
 
 
-            <!-- RECOMMENDATION -->
-            <div class="recommendation">
+            <div class="metadata-item full">
 
-                <div class="recommendation-icon">
-                    !
-                </div>
+                <span>SUBJECT</span>
+
+                <strong id="subject">-</strong>
+
+            </div>
+
+
+            <div class="metadata-item">
+
+                <span>REPLY-TO</span>
+
+                <strong id="replyTo">-</strong>
+
+            </div>
+
+
+            <div class="metadata-item">
+
+                <span>RETURN-PATH</span>
+
+                <strong id="returnPath">-</strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- HEADER -->
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <span class="section-label">
+                    HEADER FORENSICS
+                </span>
+
+                <h3>
+                    Email Header Analysis
+                </h3>
+
+            </div>
+
+            <span class="panel-icon">
+                ◉
+            </span>
+
+        </div>
+
+
+        <div class="metadata-grid">
+
+            <div class="metadata-item">
+
+                <span>
+                    SENDER DOMAIN
+                </span>
+
+                <strong id="senderDomain">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div class="metadata-item">
+
+                <span>
+                    REPLY-TO DOMAIN
+                </span>
+
+                <strong id="replyDomain">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div class="metadata-item">
+
+                <span>
+                    RETURN-PATH DOMAIN
+                </span>
+
+                <strong id="returnDomain">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div class="metadata-item">
+
+                <span>
+                    HEADER RISK SCORE
+                </span>
+
+                <strong id="headerRiskScore">
+                    -
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- AUTHENTICATION -->
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <span class="section-label">
+                    AUTHENTICATION
+                </span>
+
+                <h3>
+                    SPF / DKIM / DMARC
+                </h3>
+
+            </div>
+
+        </div>
+
+
+        <div class="metadata-grid">
+
+            <div class="metadata-item">
+
+                <span>
+                    SPF
+                </span>
+
+                <strong id="spfStatus">
+                    NOT CHECKED
+                </strong>
+
+            </div>
+
+
+            <div class="metadata-item">
+
+                <span>
+                    DKIM
+                </span>
+
+                <strong id="dkimStatus">
+                    NOT CHECKED
+                </strong>
+
+            </div>
+
+
+            <div class="metadata-item">
+
+                <span>
+                    DMARC
+                </span>
+
+                <strong id="dmarcStatus">
+                    NOT CHECKED
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- KEYWORDS -->
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <span class="section-label">
+                    CONTENT FORENSICS
+                </span>
+
+                <h3>
+                    Suspicious Keywords
+                </h3>
+
+            </div>
+
+        </div>
+
+
+        <div id="keywords">
+            <span class="empty-state">
+                No analysis yet
+            </span>
+        </div>
+
+    </div>
+
+
+    <!-- URL + IP -->
+
+    <div class="analysis-grid">
+
+
+        <div class="panel">
+
+            <div class="panel-header">
 
                 <div>
 
                     <span class="section-label">
-                        SECURITY RECOMMENDATION
+                        NETWORK FORENSICS
                     </span>
 
-                    <p id="recommendation">
-                        -
-                    </p>
+                    <h3>
+                        URL Analysis
+                    </h3>
 
                 </div>
 
             </div>
 
 
-            <!-- FORENSIC INDICATORS -->
-            <div class="panel">
+            <div id="urlAnalysis">
 
-                <div class="panel-header">
+                <span class="empty-state">
+                    No analysis yet
+                </span>
 
-                    <div>
+            </div>
 
-                        <span class="section-label">
-                            FORENSIC INTELLIGENCE
-                        </span>
+        </div>
 
-                        <h3>
-                            Detailed Indicators
-                        </h3>
 
-                    </div>
+        <div class="panel">
 
-                    <span
-                        class="indicator-count"
-                        id="indicatorCount"
-                    >
-                        0
+            <div class="panel-header">
+
+                <div>
+
+                    <span class="section-label">
+                        NETWORK FORENSICS
                     </span>
 
+                    <h3>
+                        IP & Geolocation
+                    </h3>
+
                 </div>
-
-
-                <div
-                    id="indicators"
-                    class="indicator-list"
-                ></div>
 
             </div>
 
 
-            <!-- ANALYZE AGAIN -->
-            <button
-                class="reset-btn"
-                onclick="resetAnalysis()"
-            >
+            <div id="ipAnalysis">
 
-                ↻ Analyze Another Email
+                <span class="empty-state">
+                    No analysis yet
+                </span>
 
-            </button>
+            </div>
 
-        </section>
+        </div>
 
-    </main>
+    </div>
+
+
+    <!-- SUMMARY -->
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <span class="section-label">
+                    FORENSIC SUMMARY
+                </span>
+
+                <h3>
+                    Investigation Summary
+                </h3>
+
+            </div>
+
+        </div>
+
+
+        <ul
+            class="summary-list"
+            id="summary"
+        >
+
+            <li>
+                No analysis yet.
+            </li>
+
+        </ul>
+
+    </div>
+
+
+    <!-- INDICATORS -->
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <span class="section-label">
+                    FORENSIC INDICATORS
+                </span>
+
+                <h3>
+                    Detected Indicators
+                    (<span id="indicatorCount">0</span>)
+                </h3>
+
+            </div>
+
+        </div>
+
+
+        <div id="indicators">
+
+            <span class="empty-state">
+                No forensic indicators yet.
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- RECOMMENDATION -->
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <span class="section-label">
+                    SECURITY RECOMMENDATION
+                </span>
+
+                <h3>
+                    Recommended Action
+                </h3>
+
+            </div>
+
+        </div>
+
+
+        <div
+            class="recommendation"
+            id="recommendation"
+        >
+            No analysis yet.
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =======================================================
+     SETTINGS PAGE
+======================================================= -->
+
+<section
+    id="settings"
+    class="page"
+>
+
+    <header class="topbar">
+
+        <div>
+
+            <span class="eyebrow">
+                SYSTEM SETTINGS
+            </span>
+
+            <h1>
+                Settings
+            </h1>
+
+            <p>
+                ThreatLens backend configuration.
+            </p>
+
+        </div>
+
+    </header>
+
+
+    <div class="panel settings-card">
+
+        <div class="panel-header">
+
+            <div>
+
+                <span class="section-label">
+                    SYSTEM
+                </span>
+
+                <h3>
+                    Backend Information
+                </h3>
+
+            </div>
+
+            <span class="panel-icon">
+                ⚙
+            </span>
+
+        </div>
+
+
+        <div class="setting-row">
+
+            <span>
+                API Status
+            </span>
+
+            <strong class="setting-value">
+                ONLINE
+            </strong>
+
+        </div>
+
+
+        <div class="setting-row">
+
+            <span>
+                API Address
+            </span>
+
+            <strong class="setting-value">
+                127.0.0.1:8000
+            </strong>
+
+        </div>
+
+
+        <div class="setting-row">
+
+            <span>
+                API Endpoint
+            </span>
+
+            <strong class="setting-value">
+                /api/analyze-email
+            </strong>
+
+        </div>
+
+
+        <div class="setting-row">
+
+            <span>
+                Detection Engine
+            </span>
+
+            <strong class="setting-value">
+                Rule-Based Forensics
+            </strong>
+
+        </div>
+
+
+        <div class="setting-row">
+
+            <span>
+                Geolocation
+            </span>
+
+            <strong class="setting-value">
+                ipwho.is
+            </strong>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+</main>
 
 </div>
 
 
-<script src="script.js"></script>
+<script>
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+let selectedEmailFile = null;
+
+
+/* =========================================================
+   PAGE NAVIGATION
+========================================================= */
+
+function showPage(pageId, clickedItem) {
+
+    // Hide every page
+    document.querySelectorAll(".page").forEach(page => {
+
+        page.classList.remove("active-page");
+
+    });
+
+
+    // Remove active from sidebar
+    document.querySelectorAll(".nav-item").forEach(item => {
+
+        item.classList.remove("active");
+
+    });
+
+
+    // Show selected page
+    const page =
+        document.getElementById(pageId);
+
+    if (page) {
+
+        page.classList.add("active-page");
+
+    }
+
+
+    // Highlight selected sidebar item
+    if (clickedItem) {
+
+        clickedItem.classList.add("active");
+
+    }
+
+
+    // Scroll top
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+
+
+/* =========================================================
+   FILE INPUT
+========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const fileInput =
+            document.getElementById("emailFile");
+
+        const dropZone =
+            document.getElementById("dropZone");
+
+
+        fileInput.addEventListener(
+            "change",
+            function (event) {
+
+                const file =
+                    event.target.files[0];
+
+                if (file) {
+
+                    selectedEmailFile = file;
+
+                    document.getElementById(
+                        "selectedFile"
+                    ).textContent =
+                        "Selected: " + file.name;
+                }
+
+            }
+        );
+
+
+        dropZone.addEventListener(
+            "dragover",
+            function (event) {
+
+                event.preventDefault();
+
+                dropZone.classList.add(
+                    "dragging"
+                );
+
+            }
+        );
+
+
+        dropZone.addEventListener(
+            "dragleave",
+            function () {
+
+                dropZone.classList.remove(
+                    "dragging"
+                );
+
+            }
+        );
+
+
+        dropZone.addEventListener(
+            "drop",
+            function (event) {
+
+                event.preventDefault();
+
+                dropZone.classList.remove(
+                    "dragging"
+                );
+
+
+                const file =
+                    event.dataTransfer.files[0];
+
+                if (!file) {
+                    return;
+                }
+
+
+                if (
+                    !file.name
+                        .toLowerCase()
+                        .endsWith(".eml")
+                ) {
+
+                    showError(
+                        "Please upload an .eml file."
+                    );
+
+                    return;
+                }
+
+
+                selectedEmailFile = file;
+
+
+                document.getElementById(
+                    "selectedFile"
+                ).textContent =
+                    "Selected: " + file.name;
+
+            }
+        );
+
+    }
+);
+
+
+/* =========================================================
+   ANALYZE EMAIL
+========================================================= */
+
+async function analyzeEmail() {
+
+    clearError();
+
+    const sender =
+        document
+            .getElementById("textSender")
+            .value
+            .trim();
+
+    const receiver =
+        document
+            .getElementById("textReceiver")
+            .value
+            .trim();
+
+    const subject =
+        document
+            .getElementById("textSubject")
+            .value
+            .trim();
+
+    const replyTo =
+        document
+            .getElementById("textReplyTo")
+            .value
+            .trim();
+
+    const returnPath =
+        document
+            .getElementById("textReturnPath")
+            .value
+            .trim();
+
+    const body =
+        document
+            .getElementById("textBody")
+            .value
+            .trim();
+
+
+    /* =====================================================
+       CHECK INPUT
+    ===================================================== */
+
+    if (
+        !selectedEmailFile &&
+        !sender &&
+        !subject &&
+        !body
+    ) {
+
+        showError(
+            "Please paste an email or upload an .eml file."
+        );
+
+        return;
+    }
+
+
+    showLoading();
+
+
+    try {
+
+        let emailData;
+
+
+        /* =================================================
+           EML FILE
+        ================================================= */
+
+        if (selectedEmailFile) {
+
+            const fileContent =
+                await selectedEmailFile.text();
+
+            emailData =
+                parseEML(fileContent);
+
+        }
+
+
+        /* =================================================
+           TEXT INPUT
+        ================================================= */
+
+        else {
+
+            emailData = {
+
+                sender: sender,
+
+                receiver: receiver,
+
+                subject: subject,
+
+                body: body,
+
+                reply_to:
+                    replyTo || null,
+
+                return_path:
+                    returnPath || null,
+
+                received_hops: 0,
+
+                attachment_count: 0
+
+            };
+
+        }
+
+
+        /* =================================================
+           SEND TO FASTAPI
+        ================================================= */
+
+        const response =
+            await fetch(
+                "http://127.0.0.1:8000/api/analyze-email",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        sender:
+                            emailData.sender,
+
+                        subject:
+                            emailData.subject,
+
+                        body:
+                            emailData.body,
+
+                        reply_to:
+                            emailData.reply_to,
+
+                        return_path:
+                            emailData.return_path
+
+                    })
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Backend returned error: " +
+                response.status
+            );
+
+        }
+
+
+        const result =
+            await response.json();
+
+
+        /* =================================================
+           SAVE RESULT
+        ================================================= */
+
+        displayResults(
+            result,
+            emailData
+        );
+
+
+        hideLoading();
+
+
+        /* =================================================
+           AUTOMATICALLY OPEN FORENSICS
+        ================================================= */
+
+        const forensicNav =
+            document.querySelectorAll(
+                ".nav-item"
+            )[2];
+
+        showPage(
+            "forensics",
+            forensicNav
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        hideLoading();
+
+        showError(
+            "Unable to connect to FastAPI. Make sure the server is running at 127.0.0.1:8000."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   EML PARSER
+========================================================= */
+
+function parseEML(content) {
+
+    const separator =
+        content.includes("\r\n\r\n")
+            ? "\r\n\r\n"
+            : "\n\n";
+
+
+    const parts =
+        content.split(separator);
+
+
+    const headerText =
+        parts.shift() || "";
+
+
+    const body =
+        parts.join(separator).trim();
+
+
+    const unfolded =
+        headerText.replace(
+            /\r?\n[ \t]+/g,
+            " "
+        );
+
+
+    const headers = {};
+
+
+    unfolded
+        .split(/\r?\n/)
+        .forEach(line => {
+
+            const index =
+                line.indexOf(":");
+
+
+            if (index === -1) {
+                return;
+            }
+
+
+            const key =
+                line
+                    .substring(0, index)
+                    .trim()
+                    .toLowerCase();
+
+
+            const value =
+                line
+                    .substring(index + 1)
+                    .trim();
+
+
+            headers[key] = value;
+
+        });
+
+
+    const receivedHops =
+        (
+            unfolded.match(
+                /^received\s*:/gim
+            ) || []
+        ).length;
+
+
+    const attachmentCount =
+        (
+            content.match(
+                /Content-Disposition:\s*attachment/gi
+            ) || []
+        ).length;
+
+
+    return {
+
+        sender:
+            headers["from"] || "",
+
+        receiver:
+            headers["to"] || "",
+
+        subject:
+            headers["subject"] || "",
+
+        reply_to:
+            headers["reply-to"] || null,
+
+        return_path:
+            headers["return-path"] || null,
+
+        body:
+            body,
+
+        received_hops:
+            receivedHops,
+
+        attachment_count:
+            attachmentCount
+
+    };
+
+}
+
+
+/* =========================================================
+   DISPLAY RESULTS
+========================================================= */
+
+function displayResults(
+    data,
+    emailData
+) {
+
+    /* =====================================================
+       BASIC THREAT
+    ===================================================== */
+
+    setText(
+        "threatLevel",
+        data.threat_level || "-"
+    );
+
+
+    setText(
+        "threatScore",
+        data.threat_score ?? 0
+    );
+
+
+    setText(
+        "keywordCount",
+        data.keyword_count ?? 0
+    );
+
+
+    /* =====================================================
+       EMAIL INFORMATION
+    ===================================================== */
+
+    setText(
+        "sender",
+        data.email_information?.sender ||
+        emailData.sender ||
+        "-"
+    );
+
+
+    setText(
+        "receiver",
+        emailData.receiver || "-"
+    );
+
+
+    setText(
+        "subject",
+        data.email_information?.subject ||
+        emailData.subject ||
+        "-"
+    );
+
+
+    setText(
+        "replyTo",
+        data.header_analysis?.reply_to ||
+        emailData.reply_to ||
+        "-"
+    );
+
+
+    setText(
+        "returnPath",
+        data.header_analysis?.return_path ||
+        emailData.return_path ||
+        "-"
+    );
+
+
+    /* =====================================================
+       HEADER ANALYSIS
+    ===================================================== */
+
+    const header =
+        data.header_analysis || {};
+
+
+    setText(
+        "senderDomain",
+        header.sender_domain || "-"
+    );
+
+
+    setText(
+        "replyDomain",
+        header.reply_to_domain || "-"
+    );
+
+
+    setText(
+        "returnDomain",
+        header.return_path_domain || "-"
+    );
+
+
+    setText(
+        "headerRiskScore",
+        header.header_risk_score ?? 0
+    );
+
+
+    /* =====================================================
+       STATS
+    ===================================================== */
+
+    setText(
+        "hopCount",
+        emailData.received_hops ?? 0
+    );
+
+
+    setText(
+        "attachmentCount",
+        emailData.attachment_count ?? 0
+    );
+
+
+    /* =====================================================
+       AUTHENTICATION
+    ===================================================== */
+
+    setText(
+        "spfStatus",
+        "NOT CHECKED"
+    );
+
+
+    setText(
+        "dkimStatus",
+        "NOT CHECKED"
+    );
+
+
+    setText(
+        "dmarcStatus",
+        "NOT CHECKED"
+    );
+
+
+    /* =====================================================
+       KEYWORDS
+    ===================================================== */
+
+    const keywordBox =
+        document.getElementById(
+            "keywords"
+        );
+
+
+    keywordBox.innerHTML = "";
+
+
+    const keywords =
+        data.suspicious_keywords || [];
+
+
+    if (keywords.length === 0) {
+
+        keywordBox.innerHTML =
+            `<span class="empty-state">
+                No suspicious keywords detected
+            </span>`;
+
+    }
+
+    else {
+
+        keywords.forEach(
+            keyword => {
+
+                const tag =
+                    document.createElement(
+                        "span"
+                    );
+
+                tag.className = "tag";
+
+                tag.textContent =
+                    keyword;
+
+                keywordBox.appendChild(
+                    tag
+                );
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       URL ANALYSIS
+    ===================================================== */
+
+    const urlBox =
+        document.getElementById(
+            "urlAnalysis"
+        );
+
+
+    urlBox.innerHTML = "";
+
+
+    const urls =
+        data.url_analysis || [];
+
+
+    if (urls.length === 0) {
+
+        urlBox.innerHTML =
+            `<span class="empty-state">
+                No URLs detected
+            </span>`;
+
+    }
+
+    else {
+
+        urls.forEach(
+            item => {
+
+                const div =
+                    document.createElement(
+                        "div"
+                    );
+
+                div.className =
+                    "network-item";
+
+
+                div.innerHTML = `
+
+                    <strong>
+                        ${escapeHTML(item.url)}
+                    </strong>
+
+                    <br><br>
+
+                    <small>
+                        Host:
+                        ${escapeHTML(
+                            item.hostname || "-"
+                        )}
+                    </small>
+
+                    <br>
+
+                    <small>
+                        Scheme:
+                        ${escapeHTML(
+                            item.scheme || "-"
+                        )}
+                    </small>
+
+                    <br>
+
+                    <small>
+                        Risk Score:
+                        ${item.url_risk_score ?? 0}
+                    </small>
+
+                    <br>
+
+                    <small>
+                        Flags:
+                        ${escapeHTML(
+                            (item.risk_flags || [])
+                                .join(", ") ||
+                            "None"
+                        )}
+                    </small>
+                `;
+
+
+                urlBox.appendChild(div);
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       IP ANALYSIS
+    ===================================================== */
+
+    const ipBox =
+        document.getElementById(
+            "ipAnalysis"
+        );
+
+
+    ipBox.innerHTML = "";
+
+
+    const ips =
+        data.ip_analysis || [];
+
+
+    if (ips.length === 0) {
+
+        ipBox.innerHTML =
+            `<span class="empty-state">
+                No IP addresses detected
+            </span>`;
+
+    }
+
+    else {
+
+        ips.forEach(
+            item => {
+
+                const geo =
+                    item.geolocation || {};
+
+
+                const div =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                div.className =
+                    "network-item";
+
+
+                let geoText =
+                    "Geolocation unavailable";
+
+
+                if (
+                    geo.geolocation_available
+                    === true
+                ) {
+
+                    geoText = `
+                        Country:
+                        ${escapeHTML(
+                            geo.country || "-"
+                        )}
+                        <br>
+
+                        Region:
+                        ${escapeHTML(
+                            geo.region || "-"
+                        )}
+                        <br>
+
+                        City:
+                        ${escapeHTML(
+                            geo.city || "-"
+                        )}
+                        <br>
+
+                        ISP:
+                        ${escapeHTML(
+                            geo.isp || "-"
+                        )}
+                    `;
+
+                }
+
+
+                div.innerHTML = `
+
+                    <strong>
+                        ${escapeHTML(item.ip)}
+                    </strong>
+
+                    <br><br>
+
+                    <small>
+                        Type:
+                        ${escapeHTML(
+                            item.ip_type || "-"
+                        )}
+                    </small>
+
+                    <br>
+
+                    <small>
+                        ${geoText}
+                    </small>
+                `;
+
+
+                ipBox.appendChild(div);
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       FORENSIC SUMMARY
+    ===================================================== */
+
+    const summaryBox =
+        document.getElementById(
+            "summary"
+        );
+
+
+    summaryBox.innerHTML = "";
+
+
+    const summary =
+        data.forensic_analysis?.summary
+        || [];
+
+
+    if (summary.length === 0) {
+
+        summaryBox.innerHTML =
+            "<li>No forensic summary available.</li>";
+
+    }
+
+    else {
+
+        summary.forEach(
+            text => {
+
+                const li =
+                    document.createElement(
+                        "li"
+                    );
+
+                li.textContent =
+                    text;
+
+                summaryBox.appendChild(
+                    li
+                );
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       FORENSIC INDICATORS
+    ===================================================== */
+
+    const indicatorBox =
+        document.getElementById(
+            "indicators"
+        );
+
+
+    indicatorBox.innerHTML = "";
+
+
+    const indicators =
+        data.forensic_analysis?.indicators
+        || [];
+
+
+    setText(
+        "indicatorCount",
+        indicators.length
+    );
+
+
+    if (indicators.length === 0) {
+
+        indicatorBox.innerHTML =
+            `<span class="empty-state">
+                No forensic indicators detected
+            </span>`;
+
+    }
+
+    else {
+
+        indicators.forEach(
+            item => {
+
+                const div =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                div.className =
+                    "indicator-item";
+
+
+                div.innerHTML = `
+
+                    <strong>
+                        ${escapeHTML(
+                            item.type || "UNKNOWN"
+                        )}
+                    </strong>
+
+                    <span>
+                        ${escapeHTML(
+                            item.indicator || "-"
+                        )}
+                    </span>
+
+                    <small>
+                        ${escapeHTML(
+                            item.severity || "-"
+                        )}
+                    </small>
+
+                    <p>
+                        ${escapeHTML(
+                            item.description || "-"
+                        )}
+                    </p>
+
+                `;
+
+
+                indicatorBox.appendChild(div);
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       RECOMMENDATION
+    ===================================================== */
+
+    let recommendation =
+        "No major suspicious indicators detected.";
+
+
+    if (
+        data.threat_level === "HIGH"
+    ) {
+
+        recommendation =
+            "High-risk email detected. Do not click links or provide sensitive information. Investigate the forensic indicators before trusting this email.";
+
+    }
+
+    else if (
+        data.threat_level === "MEDIUM"
+    ) {
+
+        recommendation =
+            "Some suspicious indicators were detected. Verify the sender and email headers before taking action.";
+
+    }
+
+
+    setText(
+        "recommendation",
+        recommendation
+    );
+
+}
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function setText(
+    id,
+    value
+) {
+
+    const element =
+        document.getElementById(id);
+
+
+    if (element) {
+
+        element.textContent =
+            value ?? "-";
+
+    }
+
+}
+
+
+function showLoading() {
+
+    document.getElementById(
+        "loading"
+    ).style.display = "block";
+
+
+    document.getElementById(
+        "error"
+    ).style.display = "none";
+
+}
+
+
+function hideLoading() {
+
+    document.getElementById(
+        "loading"
+    ).style.display = "none";
+
+}
+
+
+function showError(message) {
+
+    const error =
+        document.getElementById(
+            "error"
+        );
+
+
+    error.textContent =
+        message;
+
+
+    error.style.display =
+        "block";
+
+}
+
+
+function clearError() {
+
+    const error =
+        document.getElementById(
+            "error"
+        );
+
+
+    error.textContent = "";
+
+    error.style.display =
+        "none";
+
+}
+
+
+function escapeHTML(value) {
+
+    return String(value)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+</script>
 
 </body>
 </html>
